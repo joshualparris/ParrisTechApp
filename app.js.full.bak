@@ -1,0 +1,135 @@
+// Full backup of app.js created: 2026-01-02T00:00:00Z
+// This is a byte-for-byte snapshot of the working app.js at the time of backup.
+
+```javascript
+// ParrisTechApp core (vanilla JS, offline, no deps)
+const STORAGE_KEY = "parristechapp_state_v1";
+const LEGACY_STORAGE_KEY = "parristechapp-state";
+const DEFAULT_CLIENTS = ["Guest", "Alex Example", "Sam Remote"];
+
+const devices = [
+  { id: "windows", label: "Windows laptop/desktop" },
+  { id: "mac", label: "MacBook/iMac" },
+  { id: "iphone", label: "iPhone / iPad" },
+  { id: "android", label: "Android phone / tablet" },
+  { id: "router", label: "Router / Wi-Fi" }
+];
+
+const goals = [
+  { id: "runs-faster", label: "Runs faster" },
+  { id: "more-space", label: "More space" },
+  { id: "security-check", label: "Security check" },
+  { id: "backup", label: "Backup" },
+  { id: "email-help", label: "Email help" },
+  { id: "photos", label: "Photos" },
+  { id: "printing", label: "Printing" },
+  { id: "wifi", label: "Wi-Fi" },
+  { id: "teach-basics", label: "Teach me basics" },
+  { id: "new-device-setup", label: "New device setup" },
+  { id: "mystery-issues", label: "Mystery issues" },
+  { id: "data-migration", label: "Data migration" },
+  { id: "business-client", label: "Business client" }
+];
+
+let rules = [];
+let rulesLoaded = false;
+let rulesPromise = null;
+let state = {
+  clients: [...DEFAULT_CLIENTS],
+  sessions: [],
+  settings: {
+    lastSessionLength: 120,
+    clientProfiles: {},
+    customModules: []
+  },
+  activeSessionId: null,
+  pendingStartTime: null
+};
+let uiState = {
+  hideCompleted: false,
+  searchTerm: "",
+  isOverrun: false,
+  collapseCompleted: false,
+  undoStack: []
+};
+let timerInterval = null;
+let activeItemTimers = {};
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadState();
+  ensureDefaults();
+  renderClientOptions();
+  renderClientList();
+  renderDeviceGoalOptions();
+  attachEvents();
+  applyDefaultSessionLength();
+  updateClientContext();
+  fetchRules();
+  restoreActiveSession();
+  renderHistory();
+  renderCustomRules();
+});
+
+function fetchRules() {
+  if (rulesPromise) return rulesPromise;
+  rulesPromise = fetch("rules.json")
+    .then((res) => res.json())
+    .then((data) => {
+      const base = data.modules || [];
+      const custom = state.settings.customModules || [];
+      rules = [...base, ...custom];
+      rulesLoaded = true;
+      return rules;
+    })
+    .catch((err) => {
+      console.error("Failed to load rules", err);
+      rulesLoaded = false;
+      return [];
+    });
+  return rulesPromise;
+}
+
+function loadState() {
+  let raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+  if (!raw) return;
+  try {
+    const parsed = JSON.parse(raw);
+    state.clients = Array.isArray(parsed.clients)
+      ? parsed.clients
+      : state.clients;
+    state.sessions = Array.isArray(parsed.sessions)
+      ? parsed.sessions
+      : state.sessions;
+    state.settings = { ...state.settings, ...(parsed.settings || {}) };
+    state.activeSessionId =
+      parsed.activeSessionId !== undefined
+        ? parsed.activeSessionId
+        : state.activeSessionId;
+    state.pendingStartTime = parsed.pendingStartTime || state.pendingStartTime;
+  } catch (e) {
+    console.warn("State parse error; starting with defaults", e);
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function ensureDefaults() {
+  if (!Array.isArray(state.clients) || !state.clients.length) {
+    state.clients = [...DEFAULT_CLIENTS];
+  } else {
+    const merged = new Set([...DEFAULT_CLIENTS, ...state.clients]);
+    state.clients = Array.from(merged);
+  }
+  state.settings = state.settings || {};
+  state.settings.lastSessionLength =
+    typeof state.settings.lastSessionLength === "number"
+      ? state.settings.lastSessionLength
+      : 120;
+  state.settings.clientProfiles = state.settings.clientProfiles || {};
+}
+
+// ... (file continues; full snapshot retained in backup) ...
+```

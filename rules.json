@@ -1,0 +1,415 @@
+{
+  "modules": [
+    {
+      "id": "windows-health",
+      "title": "Windows: Updates & Health",
+      "devices": ["windows"],
+      "goals": [],
+      "timebox": "10-15 mins",
+      "riskNote": "May require a restart; confirm timing with the client.",
+      "quickQuestions": [
+        "Any recent update failures or blue screens?",
+        "Does the device stay plugged in during updates?"
+      ],
+      "steps": [
+        "Open Settings → Windows Update; install pending updates or pause if mid-visit risk.",
+        "Check Windows Security quick scan status; run if older than 7 days.",
+        "Review Device Manager for obvious driver warnings."
+      ]
+    },
+    {
+      "id": "windows-performance",
+      "title": "Windows: Startup & Performance",
+      "devices": ["windows"],
+      "goals": ["runs-faster", "mystery-issues"],
+      "timebox": "8-12 mins",
+      "riskNote": "Disabling startup apps can change client expectations.",
+      "quickQuestions": [
+        "Which apps feel slow to open?",
+        "Any software they must keep at startup?"
+      ],
+      "steps": [
+        "Task Manager → Startup apps: disable unneeded items; keep security/backup tools.",
+        "Check power plan set to Balanced (or Better Performance when plugged in).",
+        "Run Disk Cleanup (temp files, recycle bin)."
+      ]
+    },
+    {
+      "id": "windows-storage",
+      "title": "Windows: Storage Cleanup",
+      "devices": ["windows"],
+      "goals": ["more-space", "backup"],
+      "timebox": "10-15 mins",
+      "riskNote": "Confirm before deleting downloads or uninstalling apps.",
+      "quickQuestions": [
+        "Where do they store big files (Desktop/Downloads)?",
+        "Any apps they never use?"
+      ],
+      "steps": [
+        "Settings → System → Storage: run Storage Sense/cleanup recommendations.",
+        "Check installed apps by size; uninstall obvious bloat with consent.",
+        "Inspect OneDrive sync status if enabled to avoid duplicate storage hits."
+      ]
+    },
+    {
+      "id": "windows-browser",
+      "title": "Windows: Browser Cleanup",
+      "devices": ["windows"],
+      "goals": ["security-check", "runs-faster", "mystery-issues"],
+      "timebox": "8-10 mins",
+      "riskNote": "Removing extensions or changing homepage needs consent.",
+      "quickQuestions": [
+        "Which browser do they live in?",
+        "Any pop-ups or redirect complaints?"
+      ],
+      "steps": [
+        "Check default browser; confirm they agree.",
+        "Review extensions; remove adware/toolbars.",
+        "Clear cache only if performance is suffering."
+      ]
+    },
+    {
+      "id": "windows-security",
+      "title": "Windows: Malware & Backups",
+      "devices": ["windows"],
+      "goals": ["security-check", "backup", "business-client"],
+      "timebox": "10-12 mins",
+      "riskNote": "Scans or backup changes can slow the machine temporarily.",
+      "quickQuestions": [
+        "Any antivirus other than Defender?",
+        "Do they have an external drive for backups?"
+      ],
+      "steps": [
+        "Confirm Microsoft Defender real-time protection on; run quick scan.",
+        "Check Backup/History or OneDrive for Documents/Pictures sync.",
+        "Verify disk free space >15% to keep backups and updates healthy."
+      ]
+    },
+    {
+      "id": "mac-updates",
+      "title": "macOS: Updates & Health",
+      "devices": ["mac"],
+      "goals": [],
+      "timebox": "8-12 mins",
+      "riskNote": "OS updates may require restart; check client timing.",
+      "quickQuestions": [
+        "Any recent crash or beachballing?",
+        "Is FileVault already on?"
+      ],
+      "steps": [
+        "System Settings → General → Software Update; install if safe.",
+        "Verify FileVault and firewall status.",
+        "Run Disk Utility first aid if recent crashes."
+      ]
+    },
+    {
+      "id": "mac-startup",
+      "title": "macOS: Login & Performance",
+      "devices": ["mac"],
+      "goals": ["runs-faster", "mystery-issues"],
+      "timebox": "8-10 mins",
+      "riskNote": "Disabling login items can change expected launches.",
+      "quickQuestions": [
+        "Which apps must open automatically?",
+        "Any menu bar clutter bothering them?"
+      ],
+      "steps": [
+        "System Settings → Login Items & Allow in Background: remove nonessential.",
+        "Activity Monitor: check CPU/memory hogs; note runaway processes.",
+        "Empty Trash and clear Downloads if approved."
+      ]
+    },
+    {
+      "id": "mac-storage",
+      "title": "macOS: Storage & Browser Hygiene",
+      "devices": ["mac"],
+      "goals": ["more-space", "security-check", "runs-faster"],
+      "timebox": "10-15 mins",
+      "riskNote": "Deleting files/extensions requires consent.",
+      "quickQuestions": [
+        "Using iCloud Drive/Desktop & Documents?",
+        "Primary browser of choice?"
+      ],
+      "steps": [
+        "About This Mac → Storage: manage large files and recommendations.",
+        "Review Safari/Chrome/Firefox extensions; remove adware.",
+        "Confirm iCloud Photos optimization status if space is tight."
+      ]
+    },
+    {
+      "id": "mac-backup",
+      "title": "macOS: Backup & Security",
+      "devices": ["mac"],
+      "goals": ["backup", "security-check", "business-client"],
+      "timebox": "8-12 mins",
+      "riskNote": "Mounting new drives or changing iCloud may prompt logins.",
+      "quickQuestions": [
+        "Any Time Machine drive available?",
+        "Do they pay for extra iCloud storage?"
+      ],
+      "steps": [
+        "Check Time Machine recency; start backup if drive present.",
+        "Verify iCloud backup of Photos/Documents where applicable.",
+        "Review Security & Privacy: admin password known, unlock prompt timing."
+      ]
+    },
+    {
+      "id": "ios-storage",
+      "title": "iPhone/iPad: Storage & Health",
+      "devices": ["iphone"],
+      "goals": ["more-space", "photos", "runs-faster"],
+      "timebox": "6-10 mins",
+      "riskNote": "Deleting apps/photos needs clear consent.",
+      "quickQuestions": [
+        "iCloud Photos on? Optimize storage enabled?",
+        "Any apps safe to offload?"
+      ],
+      "steps": [
+        "Settings → General → iPhone Storage: identify large/offloadable apps.",
+        "Enable Optimize iPhone Storage for Photos if agreed.",
+        "Confirm iCloud Backup recently succeeded."
+      ]
+    },
+    {
+      "id": "ios-safety",
+      "title": "iPhone/iPad: Updates & Safety",
+      "devices": ["iphone"],
+      "goals": ["security-check", "teach-basics", "mystery-issues"],
+      "timebox": "6-8 mins",
+      "riskNote": "Permission changes alter app behavior; confirm first.",
+      "quickQuestions": [
+        "Any spam calls/texts recently?",
+        "Comfortable with Face ID/Touch ID?"
+      ],
+      "steps": [
+        "Check for iOS/iPadOS updates; install if time allows.",
+        "Privacy → Tracking/Location: disable extras; review microphone/camera.",
+        "Enable Silence Unknown Callers / spam filtering if requested."
+      ]
+    },
+    {
+      "id": "android-storage",
+      "title": "Android: Storage & Cleanup",
+      "devices": ["android"],
+      "goals": ["more-space", "photos", "runs-faster"],
+      "timebox": "6-10 mins",
+      "riskNote": "Cleaning caches may log out users; warn first.",
+      "quickQuestions": [
+        "Is Google Photos backing up?",
+        "Any apps safe to uninstall?"
+      ],
+      "steps": [
+        "Settings → Storage: clear obvious cache hogs; remove unused apps.",
+        "Confirm Google Photos backup status and upload quality.",
+        "Check Downloads folder for large files to archive/delete."
+      ]
+    },
+    {
+      "id": "android-security",
+      "title": "Android: Updates & Safety",
+      "devices": ["android"],
+      "goals": ["security-check", "teach-basics", "mystery-issues"],
+      "timebox": "6-8 mins",
+      "riskNote": "Permission changes alter notifications and access.",
+      "quickQuestions": [
+        "Any sideloaded apps?",
+        "Using screen lock and fingerprint?"
+      ],
+      "steps": [
+        "Check system and Play Store updates; enable auto-updates.",
+        "Review app permissions; revoke unnecessary location/camera/mic.",
+        "Confirm Play Protect on and scanning regularly."
+      ]
+    },
+    {
+      "id": "wifi-basics",
+      "title": "Wi-Fi / Router Basics",
+      "devices": ["router"],
+      "goals": ["wifi", "runs-faster", "mystery-issues"],
+      "timebox": "8-12 mins",
+      "riskNote": "Reboots interrupt service; confirm OK before power cycling.",
+      "quickQuestions": [
+        "Where is the router located?",
+        "Do they know the admin/password?",
+        "Any IoT devices that might drop offline?"
+      ],
+      "steps": [
+        "Check placement/obstructions; suggest moving away from metal walls.",
+        "Power cycle modem then router in order; note lights behavior.",
+        "Confirm strong Wi-Fi password; suggest guest network and WPA3 if available.",
+        "Run/record quick speed note near main work area.",
+        "Walk main rooms with a quick signal note (2.4/5GHz), recommend mesh if weak."
+      ]
+    },
+    {
+      "id": "education-files",
+      "title": "Education: Files & Cloud",
+      "devices": [],
+      "goals": ["teach-basics", "backup", "photos"],
+      "timebox": "5-8 mins",
+      "riskNote": "Avoid moving files mid-session; keep examples only.",
+      "quickQuestions": [
+        "Where do they save most work?",
+        "Do they already use cloud storage?"
+      ],
+      "steps": [
+        "Show difference between local files and cloud sync folders.",
+        "Demonstrate safe Desktop/Downloads cleanup and folder basics.",
+        "Confirm at least one backup path: cloud or external drive."
+      ]
+    },
+    {
+      "id": "education-security",
+      "title": "Education: Passwords & 2FA",
+      "devices": [],
+      "goals": ["security-check", "teach-basics"],
+      "timebox": "4-6 mins",
+      "riskNote": "Never store passwords in notes; encourage manager adoption.",
+      "quickQuestions": [
+        "Do they already use a password manager?",
+        "Have they turned on 2FA for email/banking?"
+      ],
+      "steps": [
+        "Recommend a password manager and unique passwords per site.",
+        "Walk through enabling 2FA on primary email if time allows.",
+        "Show how to recognize MFA prompts vs phishing."
+      ]
+    },
+    {
+      "id": "education-scams",
+      "title": "Education: Scam Avoidance",
+      "devices": [],
+      "goals": ["security-check", "mystery-issues"],
+      "timebox": "4-6 mins",
+      "riskNote": "Do not reset passwords without client approval.",
+      "quickQuestions": [
+        "Any recent suspicious emails/calls?",
+        "Do they know how to report spam?"
+      ],
+      "steps": [
+        "Review examples of phishing patterns and unsafe attachments.",
+        "Enable/report spam filtering in email provider.",
+        "Set expectation: never share codes or approve unknown login prompts."
+      ]
+    },
+    {
+      "id": "new-device-setup",
+      "title": "New Device Setup",
+      "devices": [],
+      "goals": ["new-device-setup"],
+      "timebox": "8-12 mins",
+      "riskNote": "Account sign-ins may trigger security alerts.",
+      "quickQuestions": [
+        "Primary accounts to sign in (email, cloud, app stores)?",
+        "Any data to migrate today?"
+      ],
+      "steps": [
+        "Sign into primary accounts and ensure sync/backup enabled.",
+        "Apply OS updates and verify device encryption/lock enabled.",
+        "Install must-have apps and set default browser/email."
+      ]
+    },
+    {
+      "id": "windows-printing",
+      "title": "Windows: Printing Basics",
+      "devices": ["windows"],
+      "goals": ["printing"],
+      "timebox": "6-10 mins",
+      "riskNote": "Driver changes may require admin rights/restarts.",
+      "quickQuestions": [
+        "USB or Wi-Fi printer? Model handy?",
+        "Any specific apps that fail to print?"
+      ],
+      "steps": [
+        "Settings → Bluetooth & devices → Printers: ensure correct default, remove stale queues.",
+        "Run built-in troubleshooter; reinstall driver/queue if corrupted.",
+        "Test print; confirm on same Wi-Fi band if wireless."
+      ]
+    },
+    {
+      "id": "mac-printing",
+      "title": "macOS: Printing Basics",
+      "devices": ["mac"],
+      "goals": ["printing"],
+      "timebox": "6-10 mins",
+      "riskNote": "Removing printers deletes queues; warn before reset.",
+      "quickQuestions": [
+        "USB or Wi-Fi printer? Model handy?",
+        "Any app-specific issues?"
+      ],
+      "steps": [
+        "System Settings → Printers & Scanners: delete/re-add printer; set default.",
+        "Reset printing system if drivers jam; reinstall manufacturer driver if needed.",
+        "Test print; confirm printer on same network; note IP for future reconnects."
+      ]
+    },
+    {
+      "id": "data-migration",
+      "title": "Data Migration",
+      "devices": [],
+      "goals": ["data-migration"],
+      "timebox": "10-15 mins",
+      "riskNote": "Moves risk duplicates/deletes; confirm source/destination and backups.",
+      "quickQuestions": [
+        "What data moves today (docs/photos/email)?",
+        "Is a backup taken already?"
+      ],
+      "steps": [
+        "Confirm backup exists (cloud or external) before moving.",
+        "Identify source/target accounts/devices; test small sample copy first.",
+        "Outline post-move checks: app logins, default save locations, cleanup plan."
+      ]
+    },
+    {
+      "id": "business-baseline",
+      "title": "Business Baseline Security",
+      "devices": [],
+      "goals": ["business-client", "security-check", "backup"],
+      "timebox": "8-12 mins",
+      "riskNote": "May require account owner approval for changes.",
+      "quickQuestions": [
+        "Who approves security changes today?",
+        "Do they use shared credentials anywhere?"
+      ],
+      "steps": [
+        "Verify OS updates and antivirus active on all in-scope devices.",
+        "Ensure backups are running (cloud or external) and test a recent restore spot.",
+        "Recommend password manager/SSO and enable 2FA on primary email/admin accounts."
+      ]
+    },
+    {
+      "id": "email-help",
+      "title": "Email Help",
+      "devices": [],
+      "goals": ["email-help"],
+      "timebox": "6-8 mins",
+      "riskNote": "Credential changes can lock out other devices; confirm before edits.",
+      "quickQuestions": [
+        "Which email provider and apps are in use?",
+        "Any sync or spam complaints?"
+      ],
+      "steps": [
+        "Verify inbox sync on primary device; check storage/quota if applicable.",
+        "Set sender name/signature and spam rules; clear obvious filters.",
+        "Show how to report spam/phishing in their client."
+      ]
+    },
+    {
+      "id": "printing-check",
+      "title": "Printing Check",
+      "devices": [],
+      "goals": ["printing"],
+      "timebox": "5-8 mins",
+      "riskNote": "Driver installs may require admin rights/restarts.",
+      "quickQuestions": [
+        "USB or Wi-Fi printer? Model handy?",
+        "Any specific apps that fail to print?"
+      ],
+      "steps": [
+        "Confirm printer is online and default; run test page.",
+        "Check driver/firmware updates; reinstall queue if corrupt.",
+        "Ensure same network as printer; document how to reconnect."
+      ]
+    }
+  ]
+}

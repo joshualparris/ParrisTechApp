@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ParrisTechApp | Tech Checkup</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+  <img id="appLogo" src="assets/logo.svg" alt="ParrisTechApp logo" onerror="this.onerror=null;this.src='https://media.licdn.com/dms/image/v2/D4D03AQGfHHrHga4kOw/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1672569901125?e=2147483647&v=beta&t=CXXswp_NGVrloLcStRln-TQxiqgtVxtrz60BVulRBpA'">
+      <div class="brand-text">
+        <p class="eyebrow">ParrisTechApp</p>
+        <h1>Guided Tech Checkup</h1>
+        <p class="subhead">Capture goals fast, follow a smart checklist, leave with a clean summary.</p>
+      </div>
+    </div>
+    <div class="right-controls">
+      <button id="clientArrivedBtn" class="primary giant">Client Arrived</button>
+      <a id="joshhubLink" class="ghost external-link" href="https://josh-hub-96no.vercel.app/dashboard" target="_blank" rel="noopener noreferrer">Joshhub</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Start Session</h2>
+        <div class="pill" id="startTimeDisplay">Start time — not set</div>
+      </div>
+      <div id="offlineBanner" class="pill muted" style="display:none;">Offline detected — actions limited</div>
+      <form id="sessionForm" class="grid" autocomplete="off">
+        <div class="field">
+          <label for="clientSelect">Client</label>
+          <div class="chip-row">
+          <select id="clientSelect"></select>
+          <input id="newClient" type="text" placeholder="Or type a new client/guest name">
+        </div>
+      </div>
+        <div id="clientContext" class="context-box">
+          New or guest client. No history yet.
+        </div>
+        <div class="grid">
+          <div class="field">
+            <label for="clientContact">Contact info</label>
+            <input id="clientContact" type="text" placeholder="Phone or email">
+          </div>
+          <div class="field">
+            <label for="clientDevicesOwned">Devices owned</label>
+            <input id="clientDevicesOwned" type="text" placeholder="e.g., Win laptop, iPhone, Router X">
+          </div>
+        </div>
+        <div class="field">
+          <label for="clientIssues">Past issues / notes</label>
+          <textarea id="clientIssues" rows="2" placeholder="Recurring issues, expectations, environment notes"></textarea>
+        </div>
+        <div class="field">
+          <label for="clientNote">Client note (quick reminder)</label>
+          <textarea id="clientNote" rows="2" placeholder="Return visit notes, expectations, devices to prioritize"></textarea>
+        </div>
+        <div class="field two-col">
+          <label for="sessionLength">Session length (mins)</label>
+          <input id="sessionLength" type="number" min="15" max="300" step="15" value="120">
+        </div>
+        <div class="field two-col">
+          <label for="location">Location</label>
+          <select id="location">
+            <option value="onsite">Onsite</option>
+            <option value="remote">Remote</option>
+          </select>
+        </div>
+        <div class="field two-col">
+          <label for="timeZone">Time zone</label>
+          <input id="timeZone" type="text" placeholder="e.g., Australia/Melbourne">
+        </div>
+        <div class="field two-col">
+          <label>Presets</label>
+          <div class="chip-row">
+            <button type="button" id="onsitePreset" class="ghost">Onsite preset</button>
+            <button type="button" id="remotePreset" class="ghost">Remote preset</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Session templates</label>
+          <div class="chip-row">
+            <select id="templateSelect"><option value="">Select template</option></select>
+            <input id="templateName" type="text" placeholder="Template name">
+            <button type="button" id="saveTemplateBtn" class="ghost">Save template</button>
+            <button type="button" id="deleteTemplateBtn" class="ghost">Delete</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Devices present</label>
+          <div class="option-grid" id="deviceOptions"></div>
+        </div>
+        <div class="field">
+          <label>Goals</label>
+          <div class="option-grid" id="goalOptions"></div>
+        </div>
+        <div class="actions">
+          <button type="button" id="buildChecklistBtn" class="primary">Build Checklist</button>
+          <button type="button" id="resetBtn" class="ghost">Reset session</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>In Session</h2>
+        <div class="stats sticky-stats">
+          <div class="stat">
+            <span>Timer</span>
+            <strong id="timerDisplay">00:00:00</strong>
+          </div>
+          <div class="stat">
+            <span>Remaining</span>
+            <strong id="remainingDisplay">--:--</strong>
+            <small id="remainingStatus">Not started</small>
+          </div>
+          <div class="stat">
+            <span>Progress</span>
+            <div class="progress-bar">
+              <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <small id="progressText">0 of 0 done</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="checklist-controls">
+        <div class="field">
+          <input id="searchSteps" type="search" placeholder="Filter steps or modules...">
+        </div>
+        <label class="toggle">
+          <input id="hideCompletedToggle" type="checkbox">
+          <span>Hide completed items</span>
+        </label>
+        <label class="toggle">
+          <input id="collapseCompletedToggle" type="checkbox">
+          <span>Collapse completed modules</span>
+        </label>
+        <button type="button" id="undoBtn" class="ghost">Undo last</button>
+      </div>
+
+      <div id="checklistContainer" class="checklist"></div>
+
+      <div class="panel-footer">
+        <div class="billing-panel">
+          <div class="panel-header">
+            <h3>Invoice lines</h3>
+            <div class="meta">
+              <span class="tag">Subtotal: <span id="invoiceSubtotal">$0.00</span></span>
+              <span class="tag">Tax 10%: <span id="invoiceTax">$0.00</span></span>
+              <span class="tag">Total: <span id="invoiceTotal">$0.00</span></span>
+              <label class="toggle">
+                <input id="taxToggle" type="checkbox" checked>
+                <span>Apply tax</span>
+              </label>
+            </div>
+          </div>
+          <div id="invoiceLines" class="invoice-lines muted">No billable items yet.</div>
+        </div>
+
+        <div class="summary-controls">
+          <button id="summaryBtn" class="primary">Generate Summary</button>
+          <button id="printBtn" class="ghost">Print view</button>
+          <button id="exportBtn" class="ghost">Export JSON</button>
+          <button id="exportAllBtn" class="ghost">Export All Sessions</button>
+          <label class="ghost file-label">
+            Import Sessions
+            <input id="importSessionsInput" type="file" accept="application/json">
+          </label>
+          <button id="finishSessionBtn" class="ghost">Mark Session Finished</button>
+        </div>
+        <div class="grid">
+          <div class="field">
+            <label for="summaryIntro">Summary intro</label>
+            <textarea id="summaryIntro" rows="2" placeholder="Short client-facing intro"></textarea>
+          </div>
+          <div class="field">
+            <label for="summaryOutro">Summary outro</label>
+            <textarea id="summaryOutro" rows="2" placeholder="Next steps / thank you"></textarea>
+          </div>
+          <label class="toggle">
+            <input id="clientModeToggle" type="checkbox">
+            <span>Client-facing (hide internal flags/notes)</span>
+          </label>
+        </div>
+        <div id="summaryBox" class="summary-box">
+          <h3>End-of-Visit Summary</h3>
+          <div id="summaryContent" class="summary-content">
+            <p>No session yet. Build a checklist to get started.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Session History</h2>
+        <div class="chip-row">
+          <input id="historySearch" type="search" placeholder="Filter by client or goal...">
+          <select id="historyClientFilter">
+            <option value="">All clients</option>
+          </select>
+        </div>
+      </div>
+      <div id="historyList" class="history-list muted">No past sessions yet.</div>
+    </section>
+
+    <section class="panel" id="reportsPanel">
+      <div class="panel-header">
+        <h2>Reports</h2>
+        <div class="pill">Aggregated session metrics</div>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label>Time range</label>
+          <select id="reportRange">
+            <option value="all">All time</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Actions</label>
+          <div class="chip-row">
+            <button type="button" id="generateReportsBtn" class="primary">Generate</button>
+            <button type="button" id="exportReportsBtn" class="ghost">Export CSV</button>
+          </div>
+        </div>
+      </div>
+      <div id="reportsContent" class="history-list muted">No report generated yet.</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Rules Editor (Simple)</h2>
+        <div class="pill">Add lightweight modules and export rules.json</div>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label for="ruleId">Module ID</label>
+          <input id="ruleId" type="text" placeholder="e.g., quick-fix">
+        </div>
+        <div class="field">
+          <label for="ruleTitle">Title</label>
+          <input id="ruleTitle" type="text" placeholder="e.g., Quick Fix Module">
+        </div>
+        <div class="field">
+          <label for="ruleDevices">Devices (comma-separated ids)</label>
+          <input id="ruleDevices" type="text" placeholder="windows,mac">
+        </div>
+        <div class="field">
+          <label for="ruleGoals">Goals (comma-separated ids)</label>
+          <input id="ruleGoals" type="text" placeholder="runs-faster,backup">
+        </div>
+        <div class="field">
+          <label for="ruleTimebox">Timebox</label>
+          <input id="ruleTimebox" type="text" placeholder="8-10 mins">
+        </div>
+        <div class="field">
+          <label for="ruleRisk">Risk note</label>
+          <input id="ruleRisk" type="text" placeholder="Optional risk/consent note">
+        </div>
+        <div class="field">
+          <label for="ruleQuestions">Quick questions (one per line)</label>
+          <textarea id="ruleQuestions" rows="3" placeholder="Question 1&#10;Question 2"></textarea>
+        </div>
+        <div class="field">
+          <label for="ruleSteps">Steps (one per line)</label>
+          <textarea id="ruleSteps" rows="4" placeholder="Step 1&#10;Step 2"></textarea>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="addRuleBtn" type="button" class="primary">Add module</button>
+        <button id="exportRulesBtn" type="button" class="ghost">Download rules.json</button>
+      </div>
+      <div id="customRulesList" class="history-list muted">No custom modules yet.</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Clients</h2>
+        <div class="pill">Store client profiles</div>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label for="clientAddName">Client name</label>
+          <input id="clientAddName" type="text" placeholder="Full name or business">
+        </div>
+        <div class="field">
+          <label for="clientAddContact">Contact</label>
+          <input id="clientAddContact" type="text" placeholder="Phone/email">
+        </div>
+        <div class="field">
+          <label for="clientAddDevices">Devices owned</label>
+          <input id="clientAddDevices" type="text" placeholder="e.g., Win laptop, iPhone, Router X">
+        </div>
+        <div class="field">
+          <label for="clientAddIssues">Past issues / notes</label>
+          <textarea id="clientAddIssues" rows="2" placeholder="Recurring issues, environment notes"></textarea>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="addClientBtn" type="button" class="primary">Add client</button>
+      </div>
+      <div id="clientList" class="history-list muted">No clients yet.</div>
+    </section>
+      <!-- Client profile modal (hidden) -->
+      <div id="clientProfileModal" class="modal" style="display:none;">
+        <div class="modal-backdrop" id="clientProfileBackdrop"></div>
+        <div class="modal-content" id="clientProfileContent">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Invoices</h2>
+        <div class="chip-row">
+          <button id="exportInvoicesBtn" type="button" class="ghost">Export invoices</button>
+        </div>
+      </div>
+      <div id="invoiceHistory" class="history-list muted">No invoices yet.</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Appearance & Settings</h2>
+        <div class="chip-row">
+          <select id="themeSelect">
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="green">Green</option>
+            <option value="blue">Blue</option>
+          </select>
+          <button id="applyThemeBtn" type="button" class="ghost">Apply theme</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Hide modules (IDs, comma-separated)</label>
+        <input id="hideModulesInput" type="text" placeholder="e.g., wifi-basics,windows-browser">
+      </div>
+      <div class="field">
+        <label>CSV import/export</label>
+        <div class="chip-row">
+          <button id="exportSessionsCsvBtn" type="button" class="ghost">Export Sessions CSV</button>
+          <button id="exportClientsCsvBtn" type="button" class="ghost">Export Clients CSV</button>
+          <label class="ghost file-label">
+            Import Clients CSV
+            <input id="importClientsCsvInput" type="file" accept="text/csv">
+          </label>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="saveSettingsBtn" type="button" class="primary">Save settings</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Follow-ups & Reminders</h2>
+        <div class="chip-row">
+          <button id="exportIcsBtn" type="button" class="ghost">Export ICS</button>
+          <button id="generateEmailBtn" type="button" class="ghost">Generate email draft</button>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="field">
+          <label for="followTitle">Title</label>
+          <input id="followTitle" type="text" placeholder="Follow-up title">
+        </div>
+        <div class="field">
+          <label for="followDue">Due date/time</label>
+          <input id="followDue" type="datetime-local">
+        </div>
+        <div class="field">
+          <label for="followNotes">Notes</label>
+          <textarea id="followNotes" rows="2" placeholder="Context for reminder"></textarea>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="addFollowBtn" type="button" class="primary">Add follow-up</button>
+      </div>
+      <div id="followList" class="history-list muted">No follow-ups yet.</div>
+      <div id="emailDraft" class="summary-box" style="display:none;">
+        <h3>Email draft</h3>
+        <pre id="emailDraftText"></pre>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Metrics</h2>
+        <div class="pill">Session stats</div>
+      </div>
+      <div id="metricsBox" class="history-list muted">No data yet.</div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
