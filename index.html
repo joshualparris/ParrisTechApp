@@ -19,6 +19,7 @@
     <div class="right-controls">
       <button id="clientArrivedBtn" class="primary giant">Client Arrived</button>
       <a id="joshhubLink" class="ghost external-link" href="https://josh-hub-96no.vercel.app/dashboard" target="_blank" rel="noopener noreferrer">Joshhub</a>
+      <a class="ghost external-link" href="https://parris-tech-services-app.vercel.app/" target="_blank" rel="noopener noreferrer">Services App</a>
     </div>
   </header>
 
@@ -325,6 +326,30 @@
         <div class="modal-backdrop" id="clientProfileBackdrop"></div>
         <div class="modal-content" id="clientProfileContent">
           <!-- populated by JS -->
+        </div>
+      </div>
+      <!-- Invoice edit modal -->
+      <div id="invoiceModal" class="modal" style="display:none;">
+        <div class="modal-backdrop" id="invoiceModalBackdrop"></div>
+        <div class="modal-content" id="invoiceModalContent">
+          <div class="panel-header">
+            <h3>Edit invoice line</h3>
+            <button id="invoiceModalClose" class="ghost">Close</button>
+          </div>
+          <div class="grid">
+            <div class="field">
+              <label for="invoiceDesc">Description</label>
+              <input id="invoiceDesc" type="text" placeholder="Description (e.g. Consultation)">
+            </div>
+            <div class="field">
+              <label for="invoiceAmount">Amount (AUD)</label>
+              <input id="invoiceAmount" type="number" step="0.01" min="0" placeholder="0.00">
+            </div>
+          </div>
+          <div class="actions">
+            <button id="saveInvoiceLineBtn" class="primary">Save line</button>
+            <button id="cancelInvoiceLineBtn" class="ghost">Cancel</button>
+          </div>
         </div>
       </div>
 
