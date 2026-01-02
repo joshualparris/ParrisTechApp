@@ -164,6 +164,7 @@
         <div class="summary-controls">
           <button id="summaryBtn" class="primary">Generate Summary</button>
           <button id="printBtn" class="ghost">Print view</button>
+          <button id="exportInvoicePdfBtn" class="ghost">Export Invoice (PDF)</button>
           <button id="exportBtn" class="ghost">Export JSON</button>
           <button id="exportAllBtn" class="ghost">Export All Sessions</button>
           <label class="ghost file-label">
@@ -181,9 +182,21 @@
             <label for="summaryOutro">Summary outro</label>
             <textarea id="summaryOutro" rows="2" placeholder="Next steps / thank you"></textarea>
           </div>
+          <div class="field">
+            <label for="riskNote">Risk / consent note</label>
+            <textarea id="riskNote" rows="2" placeholder="E.g., backups verified; consent for cleanup/uninstall granted"></textarea>
+          </div>
+          <div class="field">
+            <label for="consentName">Client acknowledgment name</label>
+            <input id="consentName" type="text" placeholder="Name or initials of consenting party">
+          </div>
           <label class="toggle">
             <input id="clientModeToggle" type="checkbox">
             <span>Client-facing (hide internal flags/notes)</span>
+          </label>
+          <label class="toggle">
+            <input id="consentCapturedToggle" type="checkbox">
+            <span>Consent captured for risk items</span>
           </label>
         </div>
         <div id="summaryBox" class="summary-box">

@@ -1202,6 +1202,14 @@ function attachEvents() {
   if (exportIcsBtn) exportIcsBtn.addEventListener("click", exportFollowUpsIcs);
   const emailBtn = document.getElementById("generateEmailBtn");
   if (emailBtn) emailBtn.addEventListener("click", generateEmailDraft);
+  const riskNoteEl = document.getElementById("riskNote");
+  const consentNameEl = document.getElementById("consentName");
+  const consentToggle = document.getElementById("consentCapturedToggle");
+  [riskNoteEl, consentNameEl, consentToggle].forEach((el) => {
+    if (!el) return;
+    el.addEventListener("input", saveConsentInputs);
+    el.addEventListener("change", saveConsentInputs);
+  });
   const applyThemeBtn = document.getElementById("applyThemeBtn");
   if (applyThemeBtn) {
     applyThemeBtn.addEventListener("click", () => {
@@ -1218,6 +1226,12 @@ function attachEvents() {
   if (exportClientsCsvBtn) exportClientsCsvBtn.addEventListener("click", exportClientsCsv);
   const importClientsCsvInput = document.getElementById("importClientsCsvInput");
   if (importClientsCsvInput) importClientsCsvInput.addEventListener("change", importClientsCsv);
+  const exportInvoicePdfBtn = document.getElementById("exportInvoicePdfBtn");
+  if (exportInvoicePdfBtn) exportInvoicePdfBtn.addEventListener("click", () => {
+    const session = getActiveSession();
+    if (!session) return alert('No active session to export invoice for.');
+    exportInvoicePDF(session.id);
+  });
   document.addEventListener("keydown", handleKeyboardShortcuts);
   window.addEventListener("online", updateOfflineBanner);
   window.addEventListener("offline", updateOfflineBanner);
@@ -1305,6 +1319,9 @@ async function handleBuildChecklist() {
   const clientContact = document.getElementById("clientContact").value.trim();
   const clientDevicesOwned = document.getElementById("clientDevicesOwned").value.trim();
   const clientIssues = document.getElementById("clientIssues").value.trim();
+  const riskNote = document.getElementById("riskNote")?.value.trim() || "";
+  const consentName = document.getElementById("consentName")?.value.trim() || "";
+  const consentCaptured = document.getElementById("consentCapturedToggle")?.checked || false;
   const chosenModules = selectModules(selectedDevices, selectedGoals);
   const items = expandChecklist(chosenModules);
 
@@ -1321,7 +1338,11 @@ async function handleBuildChecklist() {
     items,
     invoiceLines: [],
     notes: clientNote ? [clientNote] : [],
-    followUps: []
+    followUps: [],
+    riskNote,
+    consentName,
+    consentCaptured,
+    consentCapturedAt: consentCaptured ? new Date().toISOString() : null
   };
 
   state.sessions.push(session);
@@ -1417,7 +1438,12 @@ function createSession({
     modules: chosenModules,
     items,
     invoiceLines: [],
-    notes: []
+    notes: [],
+    followUps: [],
+    riskNote: "",
+    consentName: "",
+    consentCaptured: false,
+    consentCapturedAt: null
   };
   state.sessions.push(session);
   state.activeSessionId = session.id;
@@ -1686,6 +1712,7 @@ function updateProgress(session) {
 
 function renderSummary(session, { silent } = {}) {
   if (!session) return;
+  populateConsentInputs(session);
   const doneItems = session.items.filter((i) => i.status === "done");
   const clientMode = document.getElementById("clientModeToggle")?.checked;
   const flagged = clientMode ? [] : session.items.filter((i) => i.flagged);
@@ -1708,6 +1735,14 @@ function renderSummary(session, { silent } = {}) {
         "Be cautious with unexpected links/codes; call before approving prompts."
       ];
 
+  const consentLine = session.consentCaptured
+    ? `Consent captured from ${escapeHtml(session.consentName || "client")} at ${formatDateTime(
+        session.consentCapturedAt || session.startTime || session.startISO,
+        session.timeZone
+      )}`
+    : "Consent not captured yet.";
+  const riskLine = session.riskNote ? escapeHtml(session.riskNote) : "No risk/consent notes logged.";
+
   summaryBox.innerHTML = `
     <p><strong>Client:</strong> ${session.clientName} — ${formatDateTime(
     session.startTime || session.startISO,
@@ -1724,6 +1759,11 @@ function renderSummary(session, { silent } = {}) {
     <h4>Recommended next steps</h4>
     <ul>${nextSteps.join("") || "<li>None noted</li>"}</ul>
     ${renderFollowUpsSummary(session)}
+    <h4>Risk / Consent</h4>
+    <ul>
+      <li>${riskLine}</li>
+      <li>${consentLine}</li>
+    </ul>
     <h4>Security reminders</h4>
     <ul>${securityReminders.map((s) => `<li>${s}</li>`).join("") || "<li>—</li>"}</ul>
     ${summaryOutro()}
@@ -1775,6 +1815,33 @@ function summaryOutro() {
   const outro = document.getElementById("summaryOutro")?.value.trim();
   if (!outro) return "";
   return `<p>${escapeHtml(outro)}</p>`;
+}
+
+function populateConsentInputs(session) {
+  const riskEl = document.getElementById("riskNote");
+  const consentEl = document.getElementById("consentName");
+  const toggle = document.getElementById("consentCapturedToggle");
+  if (riskEl) riskEl.value = session.riskNote || "";
+  if (consentEl) consentEl.value = session.consentName || "";
+  if (toggle) toggle.checked = Boolean(session.consentCaptured);
+}
+
+function saveConsentInputs() {
+  const session = getActiveSession();
+  if (!session) return;
+  const riskEl = document.getElementById("riskNote");
+  const consentEl = document.getElementById("consentName");
+  const toggle = document.getElementById("consentCapturedToggle");
+  session.riskNote = riskEl?.value || "";
+  session.consentName = consentEl?.value || "";
+  session.consentCaptured = toggle?.checked || false;
+  if (session.consentCaptured) {
+    session.consentCapturedAt = session.consentCapturedAt || new Date().toISOString();
+  } else {
+    session.consentCapturedAt = null;
+  }
+  saveState();
+  renderSummary(session, { silent: true });
 }
 
 function currentTimeSpentMs(item) {
@@ -2416,6 +2483,135 @@ function exportReportsCsv() {
   URL.revokeObjectURL(url);
 }
 
+// CSV helpers for sessions & clients
+function csvEscape(val) {
+  if (val === null || val === undefined) return "";
+  const s = String(val);
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
+}
+
+function exportSessionsCsv() {
+  const rows = [];
+  rows.push(["id","clientName","startTime","sessionLength","location","devices","goals","modules","itemsCount","flaggedCount","notes"].join(","));
+  (state.sessions || []).forEach((s) => {
+    const devices = (s.devices || []).join('|');
+    const goals = (s.goals || []).join('|');
+    const modules = (s.modules || []).map((m) => m.id || m).join('|');
+    const itemsCount = (s.items || []).length;
+    const flaggedCount = (s.items || []).filter((i) => i.flagged).length;
+    const notes = (s.notes || []).join(' || ');
+    rows.push([
+      csvEscape(s.id),
+      csvEscape(s.clientName),
+      csvEscape(s.startTime || s.startISO || ''),
+      csvEscape(s.sessionLength || ''),
+      csvEscape(s.location || ''),
+      csvEscape(devices),
+      csvEscape(goals),
+      csvEscape(modules),
+      csvEscape(itemsCount),
+      csvEscape(flaggedCount),
+      csvEscape(notes)
+    ].join(","));
+  });
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `parristech-sessions-${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportClientsCsv() {
+  const rows = [];
+  rows.push(["name","contact","devicesOwned","pastIssues"].join(","));
+  (state.clients || []).forEach((name) => {
+    const p = getClientProfile(name) || {};
+    rows.push([
+      csvEscape(name),
+      csvEscape(p.contact || ''),
+      csvEscape(p.devicesOwned || ''),
+      csvEscape(p.pastIssues || '')
+    ].join(","));
+  });
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `parristech-clients-${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function parseCsv(text) {
+  // Basic CSV parser that handles quoted fields with double quotes
+  const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '');
+  const rows = [];
+  lines.forEach((line) => {
+    const vals = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (line[i+1] === '"') { cur += '"'; i++; } else { inQuotes = false; }
+        } else { cur += ch; }
+      } else {
+        if (ch === ',') { vals.push(cur); cur = ''; }
+        else if (ch === '"') { inQuotes = true; }
+        else { cur += ch; }
+      }
+    }
+    vals.push(cur);
+    rows.push(vals);
+  });
+  return rows;
+}
+
+function importClientsCsv(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const rows = parseCsv(String(reader.result || ''));
+      if (!rows.length) throw new Error('Empty CSV');
+      const headers = rows[0].map((h) => String(h || '').trim().toLowerCase());
+      const nameIdx = headers.indexOf('name');
+      const contactIdx = headers.indexOf('contact');
+      const devicesIdx = headers.indexOf('devicesowned');
+      const notesIdx = headers.indexOf('pastissues');
+      if (nameIdx === -1) throw new Error('CSV missing "name" column');
+      let imported = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        const name = (r[nameIdx] || '').trim();
+        if (!name) continue;
+        if (!state.clients.includes(name)) state.clients.push(name);
+        const profile = ensureClientProfile(name);
+        if (contactIdx >= 0) profile.contact = (r[contactIdx] || '').trim();
+        if (devicesIdx >= 0) profile.devicesOwned = (r[devicesIdx] || '').trim();
+        if (notesIdx >= 0) profile.pastIssues = (r[notesIdx] || '').trim();
+        imported++;
+      }
+      saveState();
+      renderClientOptions();
+      renderClientList();
+      alert(`Imported ${imported} clients`);
+    } catch (err) {
+      alert('Import failed: ' + err.message);
+    } finally {
+      e.target.value = '';
+    }
+  };
+  reader.readAsText(file);
+}
+
 function parseCsv(input) {
   return String(input || "")
     .split(",")
@@ -2645,6 +2841,14 @@ function buildSummaryHtml(session) {
         .map((f) => `<li>${escapeHtml(f.title)}${f.due ? ` — due ${escapeHtml(f.due)}` : ""}${!clientFacing && f.notes ? ` (${escapeHtml(f.notes)})` : ""}</li>`)
         .join("")}</ul>`
     : "";
+  const consentLine = session.consentCaptured
+    ? `Consent captured from ${escapeHtml(session.consentName || "client")} at ${formatDateTime(
+        session.consentCapturedAt || session.startTime || session.startISO,
+        session.timeZone
+      )}`
+    : "Consent not captured.";
+  const riskLine = session.riskNote ? escapeHtml(session.riskNote) : "No risk/consent notes.";
+  const riskHtml = `<h4>Risk / Consent</h4><ul><li>${riskLine}</li><li>${consentLine}</li></ul>`;
   const invoiceLines = session.invoiceLines && session.invoiceLines.length
     ? `<h4>Invoice</h4><ul>${session.invoiceLines.map((l) => `<li>${escapeHtml(l.description)} — $${(l.amount||0).toFixed(2)}</li>`).join("")}</ul>`
     : "";
@@ -2691,6 +2895,8 @@ function buildSummaryHtml(session) {
         ${whatWeDid}
 
         ${followUpsHtml}
+
+        ${riskHtml}
 
         ${invoiceLines}
 
