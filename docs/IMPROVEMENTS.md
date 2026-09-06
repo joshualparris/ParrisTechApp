@@ -20,12 +20,13 @@ The stashed work already added `session.timeZone`, `formatDateTime()` and
 `getAnalyticsMetrics()`, so items two and three are partly done. Finish
 them rather than restarting.
 
-## 3. The test asserts almost nothing
+## 3. The test asserts almost nothing — DONE
 
-`test_runtime.js` walks a happy path and prints. It caught nothing when it
-logged `Marked step 'undefined' as done` for an item field that does not
-exist — that ran unnoticed until read by eye. Convert its prints to
-assertions.
+Steps 7 and 8 printed "ACCEPTED (BUG)" / "REJECTED (BUG)" and still exited
+0, so a real regression reported as a pass. Now every step throws:
+acknowledgement records signedAt, the export is non-empty valid JSON, five
+malformed payloads must all be rejected, a valid round-trip must be
+accepted, and analytics are range-checked. Mutation-verified.
 
 ## 4. No linter and no CI
 
@@ -61,8 +62,10 @@ extend it to check a version.
 The handoff report is the client-facing output and the most embarrassing
 thing to break. Nothing verifies it renders.
 
-## 10. Invoicing has no rounding or currency policy
+## 10. Invoicing uses floats — lower risk than it looks
 
-Amounts are raw floats (`89.99` in the test). Totals computed by repeated
-float addition will eventually be a cent off on a real invoice. Store
-integer cents.
+Correction: amounts are raw floats summed with `reduce`, but `toFixed(2)`
+masks the drift at realistic invoice sizes. Tested 15-line invoices and
+half-cent boundaries with no divergence from integer-cent arithmetic. Worth
+revisiting only if invoices grow much larger or gain per-line discounts;
+not worth rewriting working money code today.
