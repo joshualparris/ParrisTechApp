@@ -1,0 +1,12 @@
+{
+  "name": "parristechapp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "On-site tech support session checklist and invoicing app",
+  "scripts": {
+    "test": "node test_runtime.js"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  }
+}

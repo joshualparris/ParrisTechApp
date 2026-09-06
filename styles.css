@@ -489,6 +489,34 @@ button:active { transform: translateY(1px); }
 .invoice-line strong {
   color: var(--text);
 }
+
+/* Simple modal styles (used by client profile and invoice modal) */
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2,6,23,0.6);
+}
+.modal-content {
+  position: relative;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 720px;
+  width: 96%;
+  z-index: 1201;
+}
+.modal .panel-header { margin-bottom: 8px; }
+.modal .actions { justify-content: flex-end; }
+
 .summary-box {
   background: #0c152c;
   border: 1px solid #23314f;

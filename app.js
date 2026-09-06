@@ -911,6 +911,67 @@ function hideClientProfile() {
   if (modal) modal.style.display = 'none';
 }
 
+// Invoice modal: show, hide, save
+function showInvoiceModal(itemId) {
+  const modal = document.getElementById('invoiceModal');
+  const desc = document.getElementById('invoiceDesc');
+  const amt = document.getElementById('invoiceAmount');
+  if (!modal || !desc || !amt) return;
+  const session = getActiveSession();
+  if (!session) return alert('No active session');
+  const item = session.items.find((i) => i.id === itemId);
+  if (!item) return alert('Item not found');
+  modal.dataset.itemId = itemId;
+  // support object or legacy string
+  if (item.invoice && typeof item.invoice === 'object') {
+    desc.value = item.invoice.desc || '';
+    amt.value = Number(item.invoice.amount || 0).toFixed(2);
+  } else if (item.invoice) {
+    desc.value = String(item.invoice || '');
+    amt.value = parseInvoiceAmount(item.invoice).toFixed(2);
+  } else {
+    desc.value = '';
+    amt.value = '';
+  }
+  document.getElementById('invoiceModal').style.display = 'flex';
+}
+
+function hideInvoiceModal() {
+  const modal = document.getElementById('invoiceModal');
+  if (!modal) return;
+  modal.style.display = 'none';
+  delete modal.dataset.itemId;
+  const desc = document.getElementById('invoiceDesc');
+  const amt = document.getElementById('invoiceAmount');
+  if (desc) desc.value = '';
+  if (amt) amt.value = '';
+}
+
+function saveInvoiceModal() {
+  const modal = document.getElementById('invoiceModal');
+  if (!modal) return;
+  const itemId = modal.dataset.itemId;
+  if (!itemId) return hideInvoiceModal();
+  const descEl = document.getElementById('invoiceDesc');
+  const amtEl = document.getElementById('invoiceAmount');
+  const desc = descEl?.value.trim() || '';
+  const amount = parseFloat(amtEl?.value || 0) || 0;
+  const session = getActiveSession();
+  if (!session) return alert('No active session');
+  const item = session.items.find((i) => i.id === itemId);
+  if (!item) return alert('Item not found');
+  if (!desc && !amount) {
+    item.invoice = null;
+  } else {
+    item.invoice = { desc, amount };
+  }
+  syncInvoiceLines(session);
+  saveState();
+  renderChecklist(session);
+  renderInvoice(session);
+  hideInvoiceModal();
+}
+
 function duplicateSession(sessionId, openAfter) {
   const session = state.sessions.find((s)=>s.id===sessionId);
   if (!session) return;
@@ -1251,6 +1312,14 @@ function attachEvents() {
       if (nameInput) nameInput.value = tpl ? tpl.name : "";
       if (tpl) applyTemplateToForm(tpl);
     });
+
+  // Invoice modal controls
+  const invoiceModalClose = document.getElementById('invoiceModalClose');
+  if (invoiceModalClose) invoiceModalClose.addEventListener('click', hideInvoiceModal);
+  const cancelInvoiceLineBtn = document.getElementById('cancelInvoiceLineBtn');
+  if (cancelInvoiceLineBtn) cancelInvoiceLineBtn.addEventListener('click', hideInvoiceModal);
+  const saveInvoiceLineBtn = document.getElementById('saveInvoiceLineBtn');
+  if (saveInvoiceLineBtn) saveInvoiceLineBtn.addEventListener('click', saveInvoiceModal);
 }
 
 function applyOnsitePreset() {
@@ -1598,8 +1667,9 @@ function bindChecklistActions() {
         item.flagged = !item.flagged;
       }
       if (action === "invoice") {
-        const line = prompt("Add invoice note/amount (prefix with $ for amount)", item.invoice || "");
-        if (line !== null) item.invoice = line.trim() || null;
+        // open invoice edit modal to capture description + numeric amount
+        showInvoiceModal(itemId);
+        return;
       }
       if (action === "save-note") {
         const textarea = li.querySelector(`textarea[data-note-input="${itemId}"]`);
@@ -1629,14 +1699,24 @@ function bindChecklistActions() {
 function syncInvoiceLines(session) {
   session.invoiceLines = session.items
     .filter((i) => i.invoice)
-    .map((i) => ({
-      itemId: i.id,
-      description: i.invoice
-    }));
+    .map((i) => {
+      const desc = typeof i.invoice === 'object' ? (i.invoice.desc || '') : i.invoice;
+      const amount = parseInvoiceAmount(i.invoice);
+      return {
+        itemId: i.id,
+        description: desc,
+        amount
+      };
+    });
 }
 
 function parseInvoiceAmount(text) {
-  if (!text) return 0;
+  if (text === null || text === undefined) return 0;
+  // support structured invoice objects { desc, amount }
+  if (typeof text === 'object') {
+    const n = Number(text.amount || 0);
+    return Number.isFinite(n) ? n : 0;
+  }
   const match = String(text).match(/([0-9]+(\.[0-9]{1,2})?)/);
   if (!match) return 0;
   return parseFloat(match[1]) || 0;
@@ -1657,7 +1737,8 @@ function renderInvoice(session) {
       const div = document.createElement("div");
       div.className = "invoice-line";
       const amount = parseInvoiceAmount(line.invoice);
-      div.innerHTML = `<strong>${escapeHtml(line.invoice)}</strong><span>$${amount.toFixed(2)}</span>`;
+      const desc = typeof line.invoice === 'object' ? (line.invoice.desc || '') : line.invoice;
+      div.innerHTML = `<strong>${escapeHtml(String(desc))}</strong><span>$${(amount||0).toFixed(2)}</span>`;
       wrap.appendChild(div);
     });
   }
@@ -2936,6 +3017,108 @@ function exportSummaryPDF(sessionId) {
   }, 500);
 }
 
+// Build a print-friendly invoice HTML for a session
+function buildInvoiceHtml(session) {
+  if (!session) return '<!doctype html><html><body><p>No session</p></body></html>';
+  const logoFallback = 'https://media.licdn.com/dms/image/v2/D4D03AQGfHHrHga4kOw/profile-displayphoto-shrink_200_200/profile-displayphoto-shrink_200_200/0/1672569901125?e=2147483647&v=beta&t=CXXswp_NGVrloLcStRln-TQxiqgtVxtrz60BVulRBpA';
+  const lines = (session.items || [])
+    .filter((i) => i.invoice)
+    .map((i) => ({
+      desc: typeof i.invoice === 'object' ? (i.invoice.desc || '') : i.invoice,
+      amount: parseInvoiceAmount(i.invoice)
+    }));
+  const subtotal = lines.reduce((s, l) => s + (l.amount || 0), 0);
+  const applyTax = Boolean(document.getElementById('taxToggle')?.checked);
+  const tax = applyTax ? +(subtotal * 0.1) : 0;
+  const total = subtotal + tax;
+
+  const invoiceNumber = session.id || `INV-${Date.now()}`;
+  const dateStr = formatDateTime(session.startTime || session.startISO || new Date().toISOString(), session.timeZone);
+
+  const lineRows = lines.length
+    ? lines.map((l) => `<tr><td>${escapeHtml(l.desc)}</td><td style="text-align:right">$${(l.amount||0).toFixed(2)}</td></tr>`).join('')
+    : '<tr><td colspan="2">No billable items</td></tr>';
+
+  return `<!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <title>Invoice ${escapeHtml(invoiceNumber)}</title>
+      <style>
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111;margin:20px}
+        .wrap{max-width:800px;margin:0 auto}
+        header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eee;padding-bottom:12px;margin-bottom:18px}
+        header img{height:56px}
+        h1{font-size:20px;margin:0}
+        table{width:100%;border-collapse:collapse;margin-top:12px}
+        td,th{padding:8px;border-bottom:1px solid #eee}
+        .right{text-align:right}
+        .totals td{border-top:2px solid #ddd}
+        @media print{body{margin:6mm} .no-print{display:none}}
+      </style>
+    </head>
+    <body>
+      <div class="wrap">
+        <header>
+          <div style="display:flex;align-items:center;gap:12px">
+            <img src="assets/logo.svg" alt="ParrisTechApp" onerror="this.onerror=null;this.src='${logoFallback}'" />
+            <div>
+              <h1>ParrisTechApp</h1>
+              <div class="meta">Invoice for ${escapeHtml(session.clientName || 'Client')}</div>
+            </div>
+          </div>
+          <div class="meta right">
+            <div>Invoice: <strong>${escapeHtml(invoiceNumber)}</strong></div>
+            <div>Date: ${escapeHtml(dateStr)}</div>
+            <div>Location: ${escapeHtml(session.location || '')}</div>
+          </div>
+        </header>
+
+        <section>
+          <h2>Invoice lines</h2>
+          <table>
+            <thead>
+              <tr><th>Description</th><th style="text-align:right">Amount</th></tr>
+            </thead>
+            <tbody>
+              ${lineRows}
+            </tbody>
+            <tfoot class="totals">
+              <tr><td style="text-align:right">Subtotal</td><td style="text-align:right">$${subtotal.toFixed(2)}</td></tr>
+              <tr><td style="text-align:right">Tax (10%)</td><td style="text-align:right">$${tax.toFixed(2)}</td></tr>
+              <tr><td style="text-align:right"><strong>Total</strong></td><td style="text-align:right"><strong>$${total.toFixed(2)}</strong></td></tr>
+            </tfoot>
+          </table>
+        </section>
+
+        <section style="margin-top:18px">
+          <p>Payment terms: Please pay within 14 days. Thank you for your business.</p>
+          <p class="meta">Generated by ParrisTechApp — ${new Date().toLocaleString()}</p>
+        </section>
+      </div>
+    </body>
+  </html>`;
+}
+
+// Open a print-friendly invoice window and trigger print for the session
+function exportInvoicePDF(sessionId) {
+  const session = state.sessions.find((s) => s.id === sessionId);
+  if (!session) {
+    alert('Session not found for invoice export.');
+    return;
+  }
+  const html = buildInvoiceHtml(session);
+  const w = window.open('', '_blank', 'noopener');
+  if (!w) return alert('Unable to open print window — allow popups for this site.');
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  setTimeout(() => {
+    try { w.focus(); w.print(); } catch (e) { console.warn('Invoice print failed', e); }
+  }, 500);
+}
+
 function downloadRules() {
   const payload = { modules: [...(state.settings.customModules || []), ...embedRules()] };
   const blob = new Blob([JSON.stringify(payload, null, 2)], {
@@ -3064,3 +3247,82 @@ function renderMetrics() {
     </div>
   `;
 }
+
+// Expose Client Risk Acknowledgement, Data Import/Export, and Analytics API
+window.captureClientAcknowledgement = function(sessionId, { clientName, signatureText, confirmed = true } = {}) {
+  const session = (state.sessions || []).find(s => s.id === sessionId) || getActiveSession();
+  if (!session) return false;
+  session.clientAck = {
+    clientName: clientName || session.clientName || "Client",
+    signatureText: signatureText || clientName || "Confirmed",
+    signedAt: new Date().toISOString(),
+    confirmed: !!confirmed
+  };
+  saveState();
+  return session.clientAck;
+};
+
+window.exportAppState = function() {
+  return JSON.stringify({
+    version: "1.2",
+    exportedAt: new Date().toISOString(),
+    state: state
+  }, null, 2);
+};
+
+window.importAppState = function(jsonString, options = {}) {
+  try {
+    const payload = typeof jsonString === "string" ? JSON.parse(jsonString) : jsonString;
+    const data = payload.state || payload;
+    if (!data || typeof data !== "object") {
+      throw new Error("Invalid state container format.");
+    }
+    if (!Array.isArray(data.clients) || !Array.isArray(data.sessions)) {
+      throw new Error("State payload must include clients and sessions arrays.");
+    }
+    if (options.overwrite) {
+      state.clients = data.clients;
+      state.sessions = data.sessions;
+      state.settings = data.settings || {};
+    } else {
+      state.clients = Array.from(new Set([...(state.clients || []), ...(data.clients || [])]));
+      const existingIds = new Set((state.sessions || []).map(s => s.id));
+      (data.sessions || []).forEach(s => {
+        if (!existingIds.has(s.id)) state.sessions.push(s);
+      });
+      state.settings = { ...state.settings, ...(data.settings || {}) };
+    }
+    saveState();
+    return { success: true, clients: state.clients.length, sessions: state.sessions.length };
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
+window.getAnalyticsMetrics = function() {
+  const sessions = state.sessions || [];
+  const totalSessions = sessions.length;
+  let totalBilled = 0;
+  let totalMinutes = 0;
+  const deviceCounts = {};
+
+  sessions.forEach(s => {
+    totalMinutes += Number(s.sessionLength) || 0;
+    (s.devices || []).forEach(d => {
+      deviceCounts[d] = (deviceCounts[d] || 0) + 1;
+    });
+    (s.items || []).forEach(it => {
+      if (it.invoice && typeof it.invoice.amount === "number") {
+        totalBilled += it.invoice.amount;
+      }
+    });
+  });
+
+  return {
+    totalSessions,
+    totalBilled: Math.round(totalBilled * 100) / 100,
+    avgDurationMins: totalSessions ? Math.round(totalMinutes / totalSessions) : 0,
+    deviceCounts
+  };
+};
+

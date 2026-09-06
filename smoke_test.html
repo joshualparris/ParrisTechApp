@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>ParrisTechApp — Smoke Test</title>
+    <style>body{font-family:system-ui,Segoe UI,Arial;padding:20px;}pre{background:#f4f4f4;padding:12px;border-radius:8px}</style>
+  </head>
+  <body>
+    <h1>ParrisTechApp Smoke Test</h1>
+    <p>This script will try to exercise high level flows by using the app's public helpers. Open this page on the SAME ORIGIN as the app (e.g. https://parris-tech-app.vercel.app/smoke_test.html or served from the same local server) so it can access <code>window.createSession</code> and related functions.</p>
+    <div id="report"><pre id="log">Starting...</pre></div>
+    <script>
+      function log(s){ const p=document.getElementById('log'); p.textContent += '\n' + s; }
+      async function run() {
+        log('Waiting for app APIs...');
+        const wait = (ms)=>new Promise(r=>setTimeout(r,ms));
+        for (let i=0;i<30;i++){
+          if (window.createSession && window.getActiveSession && window.renderChecklist) break;
+          await wait(200);
+        }
+        if (!window.createSession) { log('App APIs not found on window. Make sure this page is served from the same origin as the app.'); return; }
+        log('Creating session...');
+        const s = window.createSession({ clientName: 'Smoke Test', devices:['windows'], goals:['runs-faster'], sessionLength: 30 });
+        if (!s) { log('createSession returned falsy.'); return; }
+        log('Session created: ' + s.id);
+        // Wait a bit for UI to render
+        await wait(500);
+        const session = window.getActiveSession();
+        if (!session) { log('getActiveSession returned null.'); return; }
+        log('Active session OK. Items: ' + (session.items||[]).length);
+        if ((session.items||[]).length) {
+          // mark first two items done
+          session.items.slice(0,2).forEach((it)=>{ it.status='done'; });
+          // add invoice line to first item
+          const it0 = session.items[0];
+          it0.invoice = { desc: 'Smoke test work', amount: 49.95 };
+          window.syncInvoiceLines && window.syncInvoiceLines(session);
+          window.saveState && window.saveState();
+          window.renderChecklist && window.renderChecklist(session);
+          window.renderInvoice && window.renderInvoice(session);
+          log('Marked 2 items done and added invoice line.');
+        }
+        // Test Client Risk Acknowledgement
+        if (window.captureClientAcknowledgement) {
+          const ack = window.captureClientAcknowledgement(s.id, { clientName: 'Smoke Client', signatureText: 'Smoke Test Sign' });
+          log('Risk Acknowledgement captured: ' + (ack && ack.signedAt ? 'SUCCESS' : 'FAILED'));
+        }
+        // Test Backup Export & Import Validation
+        if (window.exportAppState && window.importAppState) {
+          const exported = window.exportAppState();
+          log('Export JSON length: ' + (exported ? exported.length : 0));
+          const importResult = window.importAppState(exported, { overwrite: false });
+          log('Import Validation: ' + (importResult.success ? 'SUCCESS' : 'FAILED'));
+        }
+        // Test Analytics Metrics
+        if (window.getAnalyticsMetrics) {
+          const metrics = window.getAnalyticsMetrics();
+          log('Analytics Total Sessions: ' + metrics.totalSessions + ', Total Billed: $' + metrics.totalBilled);
+        }
+
+        log('Smoke test finished. Check UI for created session and open DevTools Console for any errors.');
+      }
+      run();
+    </script>
+  </body>
+</html>
